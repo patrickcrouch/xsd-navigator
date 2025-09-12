@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSD Navigator</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header class="header">
+        <h1>XSD Navigator</h1>
+        <p>No data shared with anybody, all files kept in user localStorage</p>
+    </header>
+
+    <div class="container">
+        <section class="file-upload-section">
+            <h2>Load XSD File</h2>
+            <p>Select an XSD file from your system to begin navigation</p>
+            
+            <div class="file-input-wrapper">
+                <input type="file" id="xsdFile" class="file-input" accept=".xsd,.xml" />
+                <label for="xsdFile" class="file-input-button">
+                    Select XSD File
+                </label>
+            </div>
+
+            <div id="fileInfo" class="file-info">
+                <p>Selected: <span id="fileName" class="file-name"></span></p>
+                <p>Size: <span id="fileSize"></span></p>
+                <button id="openButton" class="open-button">Open</button>
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+        </section>
+        <section id="xsdDisplay" class="xsd-display">
+            <div class="tree-area" id="treeArea">
+                <h2>XSD Structure</h2>
+                <div id="nodeContainer"></div>
+            </div>
+            <div class="side-panel">
+                <h3>Element Details</h3>
+                <div id="sidePanelContent" class="side-panel-content">
+                    <p>Select an element to view its details</p>
+                </div>
+            </div>
+        </section>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
