@@ -60,7 +60,7 @@ function findAndDisplayRootElements(xmlDoc) {
     }
     
     // Find all element definitions
-    const elements = Array.from(schema.querySelectorAll('> element[name]'));
+    const elements = Array.from(schema.querySelectorAll(':scope > element[name]'));
     const complexTypes = Array.from(schema.querySelectorAll('complexType[name]'));
     
     if (elements.length === 0) {
@@ -112,12 +112,26 @@ function displayElements() {
 function createElementNode(element, depth) {
     const div = document.createElement('div');
     div.className = 'element-node';
+
+    // Check for minOccurs = "0" attr
+    const minOccurs = element.getAttribute('minOccurs');
+    if (minOccurs === '0') {
+        div.classList.add('optional')
+    }
     
     const name = element.getAttribute('name') || element.getAttribute('ref');
     const nameSpan = document.createElement('span');
     nameSpan.className = 'element-name';
     nameSpan.textContent = name;
     div.appendChild(nameSpan);
+
+    const type = element.getAttribute('type');
+    if (type) {
+        const typeSpan = document.createElement('span');
+        typeSpan.className = 'element-type';
+        typeSpan.textContent = type;
+        div.appendChild(typeSpan);
+    }
     
     // Check if element has children (is expandable)
     const hasChildren = hasChildElements(element);

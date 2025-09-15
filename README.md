@@ -6,7 +6,7 @@ There are a number of over-engineered tools that display an XML schema (XSD) in 
 
 ### Feature TODOs
 
-- Display more information about nodes, including types, required, local info, documentation
+- Optionally display documentation
 - Find larger schemas to parse
 - Allow multiple import of other schemas required to understand or define
 - for enumerated leaves, display values
