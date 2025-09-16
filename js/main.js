@@ -1,11 +1,12 @@
 let currentXsdData = null;
 let rootElements = [];
+let pageCount = 0;
+let pageStack = []; // Track page hierarchy
 
 // DOM elements
 const fileInput = document.getElementById('fileInput');
 const selectFileBtn = document.getElementById('selectFileBtn');
 const openFileBtn = document.getElementById('openFileBtn');
-const displayArea = document.getElementById('displayArea');
 const collapseAllBtn = document.getElementById('collapseAllBtn');
 const unloadBtn = document.getElementById('unloadBtn');
 
@@ -101,17 +102,21 @@ function findAndDisplayRootElements(xmlDoc) {
 }
 
 function displayElements() {
-    displayArea.innerHTML = '';
+    const pageContent = document.getElementById('pageContent-0');
+    pageContent.innerHTML = '';
     
     rootElements.forEach(rootElement => {
-        const elementDiv = createElementNode(rootElement, 0);
-        displayArea.appendChild(elementDiv);
+        const elementDiv = createElementItem(rootElement);
+        pageContent.appendChild(elementDiv);
     });
+
+    // Calc and set page width
+    calculatePageWidth('page-0');
 }
 
-function createElementNode(element, depth) {
+function createElementItem(element) {
     const div = document.createElement('div');
-    div.className = 'element-node';
+    div.className = 'element-item';
 
     // Check for minOccurs = "0" attr
     const minOccurs = element.getAttribute('minOccurs');
@@ -120,12 +125,14 @@ function createElementNode(element, depth) {
     }
     
     const name = element.getAttribute('name') || element.getAttribute('ref');
+    const type = element.getAttribute('type') || '';
+    
     const nameSpan = document.createElement('span');
     nameSpan.className = 'element-name';
     nameSpan.textContent = name;
     div.appendChild(nameSpan);
 
-    const type = element.getAttribute('type');
+    
     if (type) {
         const typeSpan = document.createElement('span');
         typeSpan.className = 'element-type';
@@ -136,25 +143,136 @@ function createElementNode(element, depth) {
     // Check if element has children (is expandable)
     const hasChildren = hasChildElements(element);
     if (hasChildren) {
-        div.classList.add('expandable');
-        const icon = document.createElement('span');
-        icon.className = 'expand-icon';
-        icon.textContent = '+';
-        div.appendChild(icon);
-        
-        // Create children container
-        const childrenDiv = document.createElement('div');
-        childrenDiv.className = 'children';
-        div.appendChild(childrenDiv);
-        
-        // Add click handler for expansion
-        div.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleElement(div, element);
+        div.addEventListener('click', () => {
+            openElementPage(element, name);
         });
+    } else {
+        div.classList.add('non-expandable');
     }
     
     return div;
+}
+
+function openElementPage(element, elementName) {
+    pageCount++;
+    const pageId = `page-${pageCount}`;
+
+    // Get child elements
+    const childElements = getChildElements(element);
+
+    // Create new page
+    const page = document.createElement('div');
+    page.className = 'page';
+    page.id = pageId;
+
+    const header = document.createElement('div');
+    header.className = 'page-header';
+
+    const title = document.createElement('span');
+    title.className = 'page-title';
+    title.textContent = elementName;
+    header.appendChild(title);
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-btn';
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => closePage(pageId));
+    header.appendChild(closeBtn);
+    
+    const content = document.createElement('div');
+    content.className = 'page-content';
+    content.id = `pageContent-${pageCount}`;
+    
+    // Add child elements
+    childElements.forEach(childElement => {
+        const elementDiv = createElementItem(childElement);
+        content.appendChild(elementDiv);
+    });
+    
+    page.appendChild(header);
+    page.appendChild(content);
+    
+    // Position and add page
+    positionNewPage(page, pageCount);
+    document.getElementById('pagesContainer').appendChild(page);
+    
+    // Calculate width after adding to DOM
+    calculatePageWidth(pageId);
+    
+    // Track in stack
+    pageStack.push({
+        id: pageId,
+        count: pageCount,
+        element: element,
+        name: elementName
+    });
+}
+
+function getChildElements(parentElement) {
+    let complexType = parentElement.querySelector('complexType');
+    
+    if (!complexType) {
+        const type = parentElement.getAttribute('type');
+        if (type && currentXsdData) {
+            complexType = currentXsdData.querySelector(`complexType[name="${type}"]`);
+        }
+    }
+    
+    if (complexType) {
+        return Array.from(complexType.querySelectorAll('element'));
+    }
+    
+    return [];
+}
+
+function positionNewPage(page, count) {
+    const offset = (count - 1) * 40; // Stagger each page
+    page.style.left = `${320 + offset}px`;
+    page.style.top = `${offset}px`;
+    page.style.zIndex = count;
+}
+
+function calculatePageWidth(pageId) {
+    const page = document.getElementById(pageId);
+    const items = page.querySelectorAll('.element-item');
+    
+    let maxWidth = 300; // Minimum width
+    
+    items.forEach(item => {
+        // Create a temporary element to measure text width
+        const temp = item.cloneNode(true);
+        temp.style.position = 'absolute';
+        temp.style.visibility = 'hidden';
+        temp.style.width = 'auto';
+        temp.style.whiteSpace = 'nowrap';
+        document.body.appendChild(temp);
+        
+        const width = temp.offsetWidth + 40; // Add some padding
+        maxWidth = Math.max(maxWidth, width);
+        
+        document.body.removeChild(temp);
+    });
+    
+    page.style.width = `${Math.min(maxWidth, 600)}px`; // Cap at 600px
+}
+
+function closePage(pageId) {
+    const page = document.getElementById(pageId);
+    if (page) {
+        page.remove();
+        
+        // Remove from stack
+        pageStack = pageStack.filter(p => p.id !== pageId);
+        
+        // Close any pages that were opened after this one
+        const pageNumber = parseInt(pageId.split('-')[1]);
+        const pagesToClose = pageStack.filter(p => p.count > pageNumber);
+        pagesToClose.forEach(p => {
+            const pageToRemove = document.getElementById(p.id);
+            if (pageToRemove) pageToRemove.remove();
+        });
+        pageStack = pageStack.filter(p => p.count <= pageNumber);
+    }
 }
 
 function hasChildElements(element) {
@@ -178,63 +296,30 @@ function hasChildElements(element) {
     return false;
 }
 
-function toggleElement(div, element) {
-    const childrenDiv = div.querySelector('.children');
-    const icon = div.querySelector('.expand-icon');
-    
-    if (childrenDiv.classList.contains('expanded')) {
-        // Collapse
-        childrenDiv.classList.remove('expanded');
-        icon.textContent = '+';
-    } else {
-        // Expand
-        if (childrenDiv.children.length === 0) {
-            // Load children for first time
-            loadChildElements(element, childrenDiv);
-        }
-        childrenDiv.classList.add('expanded');
-        icon.textContent = '-';
-    }
-}
-
-function loadChildElements(parentElement, container) {
-    let complexType = parentElement.querySelector('complexType');
-    
-    // If no inline complexType, look for named type reference
-    if (!complexType) {
-        const type = parentElement.getAttribute('type');
-        if (type && currentXsdData) {
-            complexType = currentXsdData.querySelector(`complexType[name="${type}"]`);
-        }
-    }
-    
-    if (complexType) {
-        const childElements = complexType.querySelectorAll('element');
-        childElements.forEach(childElement => {
-            const childNode = createElementNode(childElement, 1);
-            container.appendChild(childNode);
-        });
-    }
-}
-
 function collapseAllNodes() {
-    const expandedChildren = displayArea.querySelectorAll('.children.expanded');
-    expandedChildren.forEach(child => {
-        child.classList.remove('expanded');
-    });
-    
-    const expandIcons = displayArea.querySelectorAll('.expand-icon');
-    expandIcons.forEach(icon => {
-        icon.textContent = '+';
-    });
+    // Close all pages except the root page
+    const pages = document.querySelectorAll('.page:not(#page-0)');
+    pages.forEach(page => page.remove());
+    pageStack = [];
+    pageCount = 0;
 }
 
 function unloadFile() {
     currentXsdData = null;
     rootElements = [];
+    pageStack = [];
+    pageCount = 0;
     fileInput.value = '';
     openFileBtn.style.display = 'none';
-    displayArea.innerHTML = '<p style="text-align: center; color: #666;">Select an XSD file to begin navigation</p>';
+    
+    // Reset root page
+    const pageContent = document.getElementById('pageContent-0');
+    pageContent.innerHTML = '<p style="text-align: center; color: #666;">Select an XSD file to begin navigation</p>';
+    
+    // Remove all other pages
+    const pages = document.querySelectorAll('.page:not(#page-0)');
+    pages.forEach(page => page.remove());
+    
     hideControls();
 }
 
@@ -249,5 +334,6 @@ function hideControls() {
 }
 
 function displayError(message) {
+    const displayArea = document.getElementById('displayArea');
     displayArea.innerHTML = `<div class="error">${message}</div>`;
 }

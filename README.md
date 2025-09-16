@@ -12,6 +12,19 @@ There are a number of over-engineered tools that display an XML schema (XSD) in 
 - for enumerated leaves, display values
 - for simpletype leaves, display value info (if found)
 - modify color scheme
-- horizontal scroll and display, use entire screen for display
 - type search, highlight, and number where present in subtree (get a picture of type reuse)
 - add a license
+
+### Fixes/Bugs
+
+Problem: New pages do not overlap page 0 initially, but overlap each other so much that the underlying text is not visible
+
+Solution: New pages from the next level of elements should appear offset to the right just enough that the text of every element of the previous level is visible
+
+Problem: (Bug) Page location shifts to the right even when no underlying pages are still open.  
+
+Solution: Probably mismanaged state, collapse all button resets this
+
+Problem: Pages from the same level of elements display to the right when opened, potentially confusing the user into thinking that an element is not of the correct layer
+
+Solution: If multiple pages at same level are opened, underlying page must grow vertically to allow underlying remaining elements to still be seen
