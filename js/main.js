@@ -1,7 +1,5 @@
 let currentXsdData = null;
 let rootElements = [];
-let pageCount = 0;
-let pageStack = []; // Track page hierarchy
 
 // DOM elements
 const fileInput = document.getElementById('fileInput');
@@ -104,17 +102,17 @@ function findAndDisplayRootElements(xmlDoc) {
 function displayElements() {
     const pageContent = document.getElementById('pageContent-0');
     pageContent.innerHTML = '';
-    
+
     rootElements.forEach(rootElement => {
         const elementDiv = createElementItem(rootElement);
         pageContent.appendChild(elementDiv);
     });
-
-    // Calc and set page width
-    calculatePageWidth('page-0');
 }
 
 function createElementItem(element) {
+    const container = document.createElement('div');
+    container.className = 'element-container';
+
     const div = document.createElement('div');
     div.className = 'element-item';
 
@@ -123,89 +121,85 @@ function createElementItem(element) {
     if (minOccurs === '0') {
         div.classList.add('optional')
     }
-    
+
     const name = element.getAttribute('name') || element.getAttribute('ref');
     const type = element.getAttribute('type') || '';
-    
+
     const nameSpan = document.createElement('span');
     nameSpan.className = 'element-name';
     nameSpan.textContent = name;
     div.appendChild(nameSpan);
 
-    
+
     if (type) {
         const typeSpan = document.createElement('span');
         typeSpan.className = 'element-type';
         typeSpan.textContent = type;
         div.appendChild(typeSpan);
     }
-    
+
     // Check if element has children (is expandable)
     const hasChildren = hasChildElements(element);
     if (hasChildren) {
         div.addEventListener('click', () => {
-            openElementPage(element, name);
+            toggleElementExpansion(container, element, name);
         });
     } else {
         div.classList.add('non-expandable');
     }
-    
-    return div;
+
+    container.appendChild(div);
+    return container;
 }
 
-function openElementPage(element, elementName) {
-    pageCount++;
-    const pageId = `page-${pageCount}`;
+function toggleElementExpansion(container, element, elementName) {
+    const existingExpansion = container.querySelector('.element-expansion');
 
-    // Get child elements
-    const childElements = getChildElements(element);
+    if (existingExpansion) {
+        // Collapse: remove the expansion
+        existingExpansion.remove();
+        container.querySelector('.element-item').classList.remove('expanded');
+    } else {
+        // Expand: create the expansion
+        const childElements = getChildElements(element);
 
-    // Create new page
-    const page = document.createElement('div');
-    page.className = 'page';
-    page.id = pageId;
+        if (childElements.length > 0) {
+            const expansion = document.createElement('div');
+            expansion.className = 'element-expansion';
 
-    const header = document.createElement('div');
-    header.className = 'page-header';
+            const header = document.createElement('div');
+            header.className = 'expansion-header';
 
-    const title = document.createElement('span');
-    title.className = 'page-title';
-    title.textContent = elementName;
-    header.appendChild(title);
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'close-btn';
-    closeBtn.textContent = '×';
-    closeBtn.addEventListener('click', () => closePage(pageId));
-    header.appendChild(closeBtn);
-    
-    const content = document.createElement('div');
-    content.className = 'page-content';
-    content.id = `pageContent-${pageCount}`;
-    
-    // Add child elements
-    childElements.forEach(childElement => {
-        const elementDiv = createElementItem(childElement);
-        content.appendChild(elementDiv);
-    });
-    
-    page.appendChild(header);
-    page.appendChild(content);
-    
-    // Position and add page
-    positionNewPage(page, pageCount);
-    document.getElementById('pagesContainer').appendChild(page);
-    
-    // Calculate width after adding to DOM
-    calculatePageWidth(pageId);
-    
-    // Track in stack
-    pageStack.push({
-        id: pageId,
-        count: pageCount,
-        element: element,
-        name: elementName
-    });
+            const title = document.createElement('span');
+            title.className = 'expansion-title';
+            title.textContent = elementName;
+            header.appendChild(title);
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            closeBtn.textContent = '×';
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                expansion.remove();
+                container.querySelector('.element-item').classList.remove('expanded');
+            });
+            header.appendChild(closeBtn);
+
+            const content = document.createElement('div');
+            content.className = 'expansion-content';
+
+            // Add child elements
+            childElements.forEach(childElement => {
+                const elementDiv = createElementItem(childElement);
+                content.appendChild(elementDiv);
+            });
+
+            expansion.appendChild(header);
+            expansion.appendChild(content);
+            container.appendChild(expansion);
+            container.querySelector('.element-item').classList.add('expanded');
+        }
+    }
 }
 
 function getChildElements(parentElement) {
@@ -225,55 +219,6 @@ function getChildElements(parentElement) {
     return [];
 }
 
-function positionNewPage(page, count) {
-    const offset = (count - 1) * 40; // Stagger each page
-    page.style.left = `${320 + offset}px`;
-    page.style.top = `${offset}px`;
-    page.style.zIndex = count;
-}
-
-function calculatePageWidth(pageId) {
-    const page = document.getElementById(pageId);
-    const items = page.querySelectorAll('.element-item');
-    
-    let maxWidth = 300; // Minimum width
-    
-    items.forEach(item => {
-        // Create a temporary element to measure text width
-        const temp = item.cloneNode(true);
-        temp.style.position = 'absolute';
-        temp.style.visibility = 'hidden';
-        temp.style.width = 'auto';
-        temp.style.whiteSpace = 'nowrap';
-        document.body.appendChild(temp);
-        
-        const width = temp.offsetWidth + 40; // Add some padding
-        maxWidth = Math.max(maxWidth, width);
-        
-        document.body.removeChild(temp);
-    });
-    
-    page.style.width = `${Math.min(maxWidth, 600)}px`; // Cap at 600px
-}
-
-function closePage(pageId) {
-    const page = document.getElementById(pageId);
-    if (page) {
-        page.remove();
-        
-        // Remove from stack
-        pageStack = pageStack.filter(p => p.id !== pageId);
-        
-        // Close any pages that were opened after this one
-        const pageNumber = parseInt(pageId.split('-')[1]);
-        const pagesToClose = pageStack.filter(p => p.count > pageNumber);
-        pagesToClose.forEach(p => {
-            const pageToRemove = document.getElementById(p.id);
-            if (pageToRemove) pageToRemove.remove();
-        });
-        pageStack = pageStack.filter(p => p.count <= pageNumber);
-    }
-}
 
 function hasChildElements(element) {
     // Check if element has a complexType with child elements
@@ -297,29 +242,25 @@ function hasChildElements(element) {
 }
 
 function collapseAllNodes() {
-    // Close all pages except the root page
-    const pages = document.querySelectorAll('.page:not(#page-0)');
-    pages.forEach(page => page.remove());
-    pageStack = [];
-    pageCount = 0;
+    // Close all expansions
+    const expansions = document.querySelectorAll('.element-expansion');
+    expansions.forEach(expansion => expansion.remove());
+
+    // Remove expanded class from all element items
+    const expandedItems = document.querySelectorAll('.element-item.expanded');
+    expandedItems.forEach(item => item.classList.remove('expanded'));
 }
 
 function unloadFile() {
     currentXsdData = null;
     rootElements = [];
-    pageStack = [];
-    pageCount = 0;
     fileInput.value = '';
     openFileBtn.style.display = 'none';
-    
+
     // Reset root page
     const pageContent = document.getElementById('pageContent-0');
     pageContent.innerHTML = '<p style="text-align: center; color: #666;">Select an XSD file to begin navigation</p>';
-    
-    // Remove all other pages
-    const pages = document.querySelectorAll('.page:not(#page-0)');
-    pages.forEach(page => page.remove());
-    
+
     hideControls();
 }
 
@@ -333,7 +274,3 @@ function hideControls() {
     unloadBtn.style.display = 'none';
 }
 
-function displayError(message) {
-    const displayArea = document.getElementById('displayArea');
-    displayArea.innerHTML = `<div class="error">${message}</div>`;
-}
