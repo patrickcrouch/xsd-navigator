@@ -4,23 +4,14 @@ let rootElements = [];
 // DOM elements
 const fileInput = document.getElementById('fileInput');
 const selectFileBtn = document.getElementById('selectFileBtn');
-const openFileBtn = document.getElementById('openFileBtn');
 const collapseAllBtn = document.getElementById('collapseAllBtn');
 const unloadBtn = document.getElementById('unloadBtn');
 
 // Event listeners
 selectFileBtn.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', handleFileSelection);
-openFileBtn.addEventListener('click', parseAndDisplayXsd);
+fileInput.addEventListener('change', parseAndDisplayXsd);
 collapseAllBtn.addEventListener('click', collapseAllNodes);
 unloadBtn.addEventListener('click', unloadFile);
-
-function handleFileSelection(event) {
-    const file = event.target.files[0];
-    if (file) {
-        openFileBtn.style.display = 'inline-block';
-    }
-}
 
 function parseAndDisplayXsd() {
     const file = fileInput.files[0];
@@ -43,7 +34,8 @@ function parseAndDisplayXsd() {
             findAndDisplayRootElements(xmlDoc);
             
         } catch (error) {
-            displayError(error.message);
+            const pageContent = document.getElementById('pageContent-0');
+            pageContent.innerHTML = `<p style="text-align: center; color: #fca5a5;">Error: ${error.message}</p>`;
         }
     };
     reader.readAsText(file);
@@ -130,7 +122,6 @@ function createElementItem(element) {
     nameSpan.textContent = name;
     div.appendChild(nameSpan);
 
-
     if (type) {
         const typeSpan = document.createElement('span');
         typeSpan.className = 'element-type';
@@ -141,8 +132,13 @@ function createElementItem(element) {
     // Check if element has children (is expandable)
     const hasChildren = hasChildElements(element);
     if (hasChildren) {
+        const expandIcon = document.createElement('span');
+        expandIcon.className = 'expand-icon';
+        expandIcon.textContent = '+';
+        div.appendChild(expandIcon);
+
         div.addEventListener('click', () => {
-            toggleElementExpansion(container, element, name);
+            toggleElementExpansion(container, element);
         });
     } else {
         div.classList.add('non-expandable');
@@ -152,7 +148,7 @@ function createElementItem(element) {
     return container;
 }
 
-function toggleElementExpansion(container, element, elementName) {
+function toggleElementExpansion(container, element) {
     const existingExpansion = container.querySelector('.element-expansion');
 
     if (existingExpansion) {
@@ -167,24 +163,6 @@ function toggleElementExpansion(container, element, elementName) {
             const expansion = document.createElement('div');
             expansion.className = 'element-expansion';
 
-            const header = document.createElement('div');
-            header.className = 'expansion-header';
-
-            const title = document.createElement('span');
-            title.className = 'expansion-title';
-            title.textContent = elementName;
-            header.appendChild(title);
-
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'close-btn';
-            closeBtn.textContent = '×';
-            closeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                expansion.remove();
-                container.querySelector('.element-item').classList.remove('expanded');
-            });
-            header.appendChild(closeBtn);
-
             const content = document.createElement('div');
             content.className = 'expansion-content';
 
@@ -194,7 +172,6 @@ function toggleElementExpansion(container, element, elementName) {
                 content.appendChild(elementDiv);
             });
 
-            expansion.appendChild(header);
             expansion.appendChild(content);
             container.appendChild(expansion);
             container.querySelector('.element-item').classList.add('expanded');
@@ -255,7 +232,6 @@ function unloadFile() {
     currentXsdData = null;
     rootElements = [];
     fileInput.value = '';
-    openFileBtn.style.display = 'none';
 
     // Reset root page
     const pageContent = document.getElementById('pageContent-0');

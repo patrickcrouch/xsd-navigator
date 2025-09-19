@@ -112,25 +112,6 @@ body {
     font-size: 14px;
 }
 
-.close-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s ease;
-}
-
-.close-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
 
 .page-content {
     padding: 16px;
@@ -198,7 +179,7 @@ body {
 
 .element-expansion {
     margin-top: 8px;
-    margin-left: 16px;
+    margin-left: 32px;
     background: rgba(30, 41, 59, 0.8);
     border: 1px solid #334155;
     border-radius: 8px;
@@ -207,19 +188,6 @@ body {
     min-width: max-content;
 }
 
-.expansion-header {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    padding: 8px 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.expansion-title {
-    color: white;
-    font-weight: 600;
-    font-size: 13px;
-}
 
 .expansion-content {
     padding: 12px;
@@ -238,17 +206,14 @@ body {
     margin-left: 16px;
 }
 
-
-.error {
-    color: #fca5a5;
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 8px;
-    padding: 16px;
-    margin: 16px 0;
-    font-weight: 500;
-    backdrop-filter: blur(5px);
+.expand-icon {
+    margin-left: 16px;
+    color: #60a5fa;
+    font-weight: bold;
+    font-size: 16px;
 }
+
+
 
 .bottom-controls {
     position: fixed;
